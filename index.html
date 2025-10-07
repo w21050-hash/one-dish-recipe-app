@@ -2,54 +2,120 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>日本レシピ検索モックアップ</title>
+  <title>一品提案型レシピ記録アプリ（日本語版）</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 20px; background-color: #fafafa; }
-    h1 { color: #333; text-align: center; }
-    input, button { padding: 10px; font-size: 16px; border-radius: 8px; }
-    button { background-color: #ff7043; color: white; border: none; cursor: pointer; margin-left: 5px; }
-    #results { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; }
-    .card {
-      background: white; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      width: 280px; padding: 10px; text-align: center;
+    body {
+      font-family: "Hiragino Sans", "Meiryo", sans-serif;
+      background-color: #fffaf4;
+      margin: 0;
+      padding: 0;
+      text-align: center;
     }
-    .card img { width: 100%; border-radius: 8px; }
-    .card h3 { font-size: 18px; margin: 10px 0; }
-    .card a {
-      display: inline-block; background-color: #ff7043; color: white;
-      padding: 6px 10px; border-radius: 6px; text-decoration: none;
+    h1 {
+      background-color: #e87b1e;
+      color: white;
+      padding: 15px;
+      font-size: 22px;
+      margin: 0;
+    }
+    input {
+      width: 80%;
+      padding: 10px;
+      margin-top: 20px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 16px;
+    }
+    button {
+      background-color: #e87b1e;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #cc6a1a;
+    }
+    #recipeResult {
+      margin-top: 25px;
+      padding: 15px;
+    }
+    .recipe-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      width: 85%;
+      margin: 15px auto;
+      padding: 15px;
+      text-align: left;
+    }
+    .recipe-card img {
+      width: 100%;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    .recipe-card a {
+      color: #e87b1e;
+      font-weight: bold;
+      text-decoration: none;
     }
   </style>
 </head>
 <body>
-  <h1>🍳 日本レシピ検索（楽天レシピAPI）</h1>
-  <div style="text-align:center;">
-    <input type="text" id="keyword" placeholder="例：カレー、卵、キャベツなど">
-    <button onclick="searchRecipe()">検索</button>
-  </div>
+  <h1>一品提案型レシピ記録アプリ（日本語版）</h1>
 
-  <div id="results"></div>
+  <input type="text" id="ingredientInput" placeholder="例：にんじん、じゃがいも、鶏肉など">
+  <br>
+  <button onclick="searchRecipe()">レシピを提案</button>
+
+  <div id="recipeResult"></div>
 
   <script>
+    const APP_ID = "1009563489332319367"; // ←ここを書き換え！
+
+    // 食材→カテゴリ→レシピ検索
     async function searchRecipe() {
-      const keyword = document.getElementById("keyword").value.trim();
-      if (!keyword) {
-        alert("検索ワードを入力してください");
+      const ingredient = document.getElementById("ingredientInput").value.trim();
+      const resultDiv = document.getElementById("recipeResult");
+      resultDiv.innerHTML = "レシピを検索中です...";
+
+      if (!ingredient) {
+        resultDiv.innerHTML = "食材名を入力してください。";
         return;
       }
 
-      const appId = "1095600296150612170"; // ← あなたの楽天APIキーを使用
-      const apiUrl = `https://app.rakuten.co.jp/services/api/Recipe/CategoryList/20170426?applicationId=${appId}`;
+      try {
+        // 楽天レシピランキング（カテゴリ10：人気レシピ）
+        const categoryId = 10; // 仮カテゴリ（後で動的に変更可）
+        const apiURL = `https://app.rakuten.co.jp/services/api/Recipe/CategoryRanking/20170426?format=json&categoryId=${categoryId}&applicationId=${APP_ID}`;
+        const res = await fetch(apiURL);
+        const data = await res.json();
 
-      const res = await fetch(apiUrl);
-      const data = await res.json();
-      console.log(data);
+        if (!data.result || data.result.length === 0) {
+          resultDiv.innerHTML = "レシピが見つかりませんでした。";
+          return;
+        }
 
-      const resultsDiv = document.getElementById("results");
-      resultsDiv.innerHTML = `
-        <p>🔍 現在のAPI接続テスト：${data.result.large.length}件のカテゴリを取得しました。</p>
-        <p>（例）${data.result.large[0].categoryName}</p>
-      `;
+        resultDiv.innerHTML = `<h2>「${ingredient}」を使ったおすすめレシピ</h2>`;
+        data.result.slice(0, 5).forEach(recipe => {
+          const card = document.createElement("div");
+          card.className = "recipe-card";
+          card.innerHTML = `
+            <h3>${recipe.recipeTitle}</h3>
+            <img src="${recipe.foodImageUrl}" alt="料理画像">
+            <p><a href="${recipe.recipeUrl}" target="_blank">レシピを見る</a></p>
+            <p><b>作者:</b> ${recipe.nickname}</p>
+          `;
+          resultDiv.appendChild(card);
+        });
+
+      } catch (err) {
+        console.error(err);
+        resultDiv.innerHTML = "エラーが発生しました。APIキーや接続を確認してください。";
+      }
     }
   </script>
 </body>
