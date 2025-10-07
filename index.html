@@ -2,95 +2,56 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>一品提案型レシピ記録アプリ（日本語版）</title>
+  <title>日本レシピ検索モックアップ</title>
   <style>
-    body {
-      font-family: "Hiragino Sans", "Noto Sans JP", sans-serif;
-      background-color: #fffdf8;
-      margin: 10px;
-      color: #333;
+    body { font-family: Arial, sans-serif; margin: 20px; background-color: #fafafa; }
+    h1 { color: #333; text-align: center; }
+    input, button { padding: 10px; font-size: 16px; border-radius: 8px; }
+    button { background-color: #ff7043; color: white; border: none; cursor: pointer; margin-left: 5px; }
+    #results { display: flex; flex-wrap: wrap; justify-content: center; gap: 15px; margin-top: 20px; }
+    .card {
+      background: white; border-radius: 10px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      width: 280px; padding: 10px; text-align: center;
     }
-
-    h1 {
-      text-align: center;
-      color: #e67e22;
-    }
-
-    input, button {
-      font-size: 16px;
-      padding: 8px;
-      margin: 5px 0;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      width: 100%;
-    }
-
-    button {
-      background-color: #e67e22;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #cf6d17;
-    }
-
-    #recipeResult {
-      margin-top: 20px;
-      background: #fff;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-    }
-
-    img {
-      max-width: 100%;
-      border-radius: 10px;
+    .card img { width: 100%; border-radius: 8px; }
+    .card h3 { font-size: 18px; margin: 10px 0; }
+    .card a {
+      display: inline-block; background-color: #ff7043; color: white;
+      padding: 6px 10px; border-radius: 6px; text-decoration: none;
     }
   </style>
+</head>
+<body>
+  <h1>🍳 日本レシピ検索（楽天レシピAPI）</h1>
+  <div style="text-align:center;">
+    <input type="text" id="keyword" placeholder="例：カレー、卵、キャベツなど">
+    <button onclick="searchRecipe()">検索</button>
+  </div>
+
+  <div id="results"></div>
 
   <script>
-    const APP_ID = "あなたの楽天アプリIDをここに入れる";
-
-    async function getRecipe() {
-      const ingredient = document.getElementById("ingredientInput").value.trim();
-      const resultDiv = document.getElementById("recipeResult");
-      if (!ingredient) {
-        resultDiv.innerHTML = "まず食材を入力してください。";
+    async function searchRecipe() {
+      const keyword = document.getElementById("keyword").value.trim();
+      if (!keyword) {
+        alert("検索ワードを入力してください");
         return;
       }
 
-      resultDiv.innerHTML = "レシピ検索中...";
+      const appId = "1095600296150612170"; // ← あなたの楽天APIキーを使用
+      const apiUrl = `https://app.rakuten.co.jp/services/api/Recipe/CategoryList/20170426?applicationId=${appId}`;
 
-      try {
-        const res = await fetch(
-          `https://app.rakuten.co.jp/services/api/Recipe/CategoryList/20170426?applicationId=${APP_ID}`
-        );
-        const data = await res.json();
+      const res = await fetch(apiUrl);
+      const data = await res.json();
+      console.log(data);
 
-        // 仮のカテゴリからランダムでレシピ取得
-        const categories = data.result.small;
-        const randomCategory = categories[Math.floor(Math.random() * categories.length)].categoryUrl;
-
-        resultDiv.innerHTML = `
-          <h3>「${ingredient}」を使ったおすすめレシピ</h3>
-          <p>レシピを開く：<a href="${randomCategory}" target="_blank">${randomCategory}</a></p>
-          <img src="https://www.rakuten.ne.jp/gold/recipe/img/recipe_main.jpg" alt="サンプル画像">
-          <p>（※この画面はモックアップです。実際のレシピ取得は次の段階で実装します）</p>
-        `;
-      } catch (error) {
-        resultDiv.innerHTML = "エラーが発生しました：" + error;
-      }
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = `
+        <p>🔍 現在のAPI接続テスト：${data.result.large.length}件のカテゴリを取得しました。</p>
+        <p>（例）${data.result.large[0].categoryName}</p>
+      `;
     }
   </script>
-</head>
-<body>
-  <h1>一品提案型レシピ記録アプリ（日本語版）</h1>
-
-  <input type="text" id="ingredientInput" placeholder="例：にんじん、たまごなど">
-  <button onclick="getRecipe()">レシピを提案</button>
-
-  <div id="recipeResult"></div>
 </body>
 </html>
+
