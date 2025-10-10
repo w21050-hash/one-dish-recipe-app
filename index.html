@@ -87,18 +87,23 @@
         // カテゴリ一覧取得
         const catRes = await fetch(`https://app.rakuten.co.jp/services/api/Recipe/CategoryList/20170426?applicationId=${APP_ID}`);
         const catData = await catRes.json();
-        const categories = [...catData.result.large, ...catData.result.medium, ...catData.result.small];
 
-        // 食材名を含むカテゴリを検索
-        const matched = categories.find(cat => cat.categoryName.includes(ingredient));
+        // 小カテゴリ優先 → 中カテゴリでも探す
+        let matched = catData.result.small.find(cat => cat.categoryName.includes(ingredient));
+        if (!matched) {
+          matched = catData.result.medium.find(cat => cat.categoryName.includes(ingredient));
+        }
+
         if (!matched) {
           resultDiv.innerHTML = "該当するレシピカテゴリが見つかりませんでした。別の食材を試してください。";
           return;
         }
 
         // ランキング取得
-        const rankRes = await fetch(`https://app.rakuten.co.jp/services/api/Recipe/CategoryRanking/20170426?applicationId=${APP_ID}&categoryId=${matched.categoryId}`);
+        const rankUrl = `https://app.rakuten.co.jp/services/api/Recipe/CategoryRanking/20170426?applicationId=${APP_ID}&categoryId=${matched.categoryId}`;
+        const rankRes = await fetch(rankUrl);
         const rankData = await rankRes.json();
+
         if (!rankData.result || rankData.result.length === 0) {
           resultDiv.innerHTML = "このカテゴリにレシピがありません。";
           return;
