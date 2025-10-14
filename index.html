@@ -176,24 +176,40 @@
       showSavedRecipes();
     }
 
-    async function showSavedRecipes() {
-      const q = query(collection(db, "recipes"), orderBy("date", "desc"));
-      const snapshot = await getDocs(q);
-      const list = document.getElementById("savedRecipes");
-      list.innerHTML = "";
-      snapshot.forEach(doc => {
-        const recipe = doc.data();
-        list.innerHTML += `
-          <div class="recipe-card">
-            <h4>${recipe.name}</h4>
-            <img src="${recipe.image}" alt="${recipe.name}">
-            <p><a href="${recipe.url}" target="_blank">レシピを見る</a></p>
-            <p><b>感想:</b> ${recipe.comment || "（未記入）"}</p>
-            <p class="rating"><b>評価:</b> ${"⭐️".repeat(recipe.rating || 0)}</p>
-          </div>
-        `;
-      });
-    }
+   async function showSavedRecipes() {
+  const snapshot = await getDocs(collection(db, "recipes"));
+  const list = document.getElementById("savedRecipes");
+  const sortOption = document.getElementById("sortOption")?.value || "date-desc";
+
+  let recipes = [];
+  snapshot.forEach(doc => recipes.push(doc.data()));
+
+  // 並び替えロジック
+  if (sortOption === "date-desc") {
+    recipes.sort((a, b) => new Date(b.date) - new Date(a.date));
+  } else if (sortOption === "date-asc") {
+    recipes.sort((a, b) => new Date(a.date) - new Date(b.date));
+  } else if (sortOption === "rating-desc") {
+    recipes.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  } else if (sortOption === "rating-asc") {
+    recipes.sort((a, b) => (a.rating || 0) - (b.rating || 0));
+  }
+
+  // カード表示
+  list.innerHTML = "";
+  recipes.forEach(recipe => {
+    list.innerHTML += `
+      <div class="recipe-card">
+        <h4>${recipe.name}</h4>
+        <img src="${recipe.image}" alt="${recipe.name}">
+        <p><a href="${recipe.url}" target="_blank">レシピを見る</a></p>
+        <p><b>感想:</b> ${recipe.comment || "（未記入）"}</p>
+        <p class="rating"><b>評価:</b> ${"⭐️".repeat(recipe.rating || 0)}</p>
+        <p><small>保存日: ${new Date(recipe.date).toLocaleString()}</small></p>
+      </div>
+    `;
+  });
+}
 
     window.onload = showSavedRecipes;
     window.getRakutenRecipe = getRakutenRecipe;
@@ -212,6 +228,17 @@
   <div id="recipeResult"></div>
 
   <h2>料理ストーリーブック</h2>
+  <div style="text-align:right; margin-bottom:10px;">
+  <label>並び替え：
+    <select id="sortOption" onchange="showSavedRecipes()">
+      <option value="date-desc">新しい順</option>
+      <option value="date-asc">古い順</option>
+      <option value="rating-desc">評価が高い順</option>
+      <option value="rating-asc">評価が低い順</option>
+    </select>
+  </label>
+</div>
+
   <div id="savedRecipes"></div>
 </body>
 </html>
