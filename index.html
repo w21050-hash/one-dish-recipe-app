@@ -57,7 +57,7 @@
     }
   </style>
 
- <script type="module">
+  <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
@@ -186,3 +186,20 @@ window.onload = showSavedRecipes;
 window.getRakutenRecipe = getRakutenRecipe;
 window.saveRecipe = saveRecipe;
 </script>
+
+</head>
+
+<body>
+  <h1>一品提案型レシピ記録アプリ 🍳</h1>
+
+  <h2>食材を入力</h2>
+  <input type="text" id="ingredientInput" placeholder="例：じゃがいも、鶏肉、卵 など">
+  <button onclick="getRakutenRecipe(document.getElementById('ingredientInput').value.trim())">レシピを提案</button>
+
+  <h2>レシピ提案</h2>
+  <div id="recipeResult"></div>
+
+  <h2>料理ストーリーブック</h2>
+  <div id="savedRecipes"></div>
+</body>
+</html>
