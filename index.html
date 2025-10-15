@@ -98,123 +98,125 @@
   </style>
 
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
+  import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
-    const firebaseConfig = {
-      apiKey: "AIzaSyDNrRl_pHrI3qNs0CysOb4UcRmfcFVPiCE",
-      authDomain: "one-dish-recipe-app.firebaseapp.com",
-      projectId: "one-dish-recipe-app",
-      storageBucket: "one-dish-recipe-app.firebasestorage.app",
-      messagingSenderId: "685959274245",
-      appId: "1:685959274245:web:6c7194f9993c67aa9c216c"
-    };
+  // Firebase設定
+  const firebaseConfig = {
+    apiKey: "AIzaSyDNrRl_pHrI3qNs0CysOb4UcRmfcFVPiCE",
+    authDomain: "one-dish-recipe-app.firebaseapp.com",
+    projectId: "one-dish-recipe-app",
+    storageBucket: "one-dish-recipe-app.firebasestorage.app",
+    messagingSenderId: "685959274245",
+    appId: "1:685959274245:web:6c7194f9993c67aa9c216c"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+  const APP_ID = "1009563489332319367";
+  let currentRecipe = null;
 
-    const APP_ID = "1009563489332319367";
-    let currentRecipe = null;
+  // ✅ 楽天レシピ取得
+  async function getRakutenRecipe(ingredient) {
+    const resultDiv = document.getElementById("recipeResult");
+    resultDiv.innerHTML = "レシピを検索中...";
 
-    async function getRakutenRecipe(ingredient) {
-      const resultDiv = document.getElementById("recipeResult");
-      resultDiv.innerHTML = "レシピを検索中...";
+    try {
+      const catRes = await fetch(`https://app.rakuten.co.jp/services/api/Recipe/CategoryList/20170426?applicationId=${APP_ID}`);
+      const catData = await catRes.json();
 
-      try {
-        const catRes = await fetch(`https://app.rakuten.co.jp/services/api/Recipe/CategoryList/20170426?applicationId=${APP_ID}`);
-        const catData = await catRes.json();
-        const categories = [...catData.result.large, ...catData.result.medium, ...catData.result.small];
+      const categories = [
+        ...catData.result.large,
+        ...catData.result.medium,
+        ...catData.result.small
+      ];
 
-        const matched = categories.find(cat => cat.categoryName.includes(ingredient));
-        if (!matched) {
-          resultDiv.innerHTML = "該当するカテゴリが見つかりませんでした。";
-          return;
-        }
-
-        const rankRes = await fetch(`https://app.rakuten.co.jp/services/api/Recipe/CategoryRanking/20170426?applicationId=${APP_ID}&categoryId=${matched.categoryId}`);
-        const rankData = await rankRes.json();
-
-        if (!rankData.result || rankData.result.length === 0) {
-          resultDiv.innerHTML = "このカテゴリにレシピがありません。";
-          return;
-        }
-
-        const recipe = rankData.result[Math.floor(Math.random() * rankData.result.length)];
-        currentRecipe = {
-          ingredient: ingredient,
-          name: recipe.recipeTitle,
-          image: recipe.foodImageUrl,
-          url: recipe.recipeUrl,
-          date: new Date().toISOString()
-        };
-
-        resultDiv.innerHTML = `
-          <div class="recipe-card">
-            <h3>${recipe.recipeTitle}</h3>
-            <img src="${recipe.foodImageUrl}" alt="${recipe.recipeTitle}">
-            <p><a href="${recipe.recipeUrl}" target="_blank">楽天レシピで見る</a></p>
-
-            <h4>感想・評価を記録</h4>
-            <textarea id="recipeComment" placeholder="作ってみた感想を入力"></textarea>
-            <label>評価：
-              <select id="recipeRating">
-                <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
-                <option value="4">⭐️⭐️⭐️⭐️</option>
-                <option value="3">⭐️⭐️⭐️</option>
-                <option value="2">⭐️⭐️</option>
-                <option value="1">⭐️</option>
-              </select>
-            </label>
-
-            <button onclick="saveRecipe()">感想を記録</button>
-            <button onclick="getRakutenRecipe('${ingredient}')">別のレシピを提案</button>
-          </div>
-        `;
-      } catch (error) {
-        resultDiv.innerHTML = "エラーが発生しました: " + error;
+      const matched = categories.find(cat => cat.categoryName.includes(ingredient));
+      if (!matched) {
+        resultDiv.innerHTML = "該当するレシピカテゴリが見つかりませんでした。";
+        return;
       }
+
+      const rankRes = await fetch(
+        `https://app.rakuten.co.jp/services/api/Recipe/CategoryRanking/20170426?applicationId=${APP_ID}&categoryId=${matched.categoryId}`
+      );
+      const rankData = await rankRes.json();
+      if (!rankData.result || rankData.result.length === 0) {
+        resultDiv.innerHTML = "このカテゴリにレシピがありません。";
+        return;
+      }
+
+      const recipe = rankData.result[Math.floor(Math.random() * rankData.result.length)];
+      currentRecipe = {
+        ingredient,
+        name: recipe.recipeTitle,
+        image: recipe.foodImageUrl,
+        url: recipe.recipeUrl,
+        date: new Date().toISOString()
+      };
+
+      resultDiv.innerHTML = `
+        <div class="recipe-card">
+          <h3>${recipe.recipeTitle}</h3>
+          <img src="${recipe.foodImageUrl}">
+          <p><a href="${recipe.recipeUrl}" target="_blank">レシピを開く（楽天レシピ）</a></p>
+          <h4>感想を記録する</h4>
+          <textarea id="recipeComment" placeholder="作ってみた感想"></textarea>
+          <label>評価：
+            <select id="recipeRating">
+              <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
+              <option value="4">⭐️⭐️⭐️⭐️</option>
+              <option value="3">⭐️⭐️⭐️</option>
+              <option value="2">⭐️⭐️</option>
+              <option value="1">⭐️</option>
+            </select>
+          </label>
+          <button onclick="saveRecipe()">感想つきで記録</button>
+          <button onclick="getRakutenRecipe('${ingredient}')">別のレシピを提案</button>
+        </div>
+      `;
+    } catch (error) {
+      resultDiv.innerHTML = "エラーが発生しました: " + error;
     }
+  }
 
-    async function saveRecipe() {
-      if (!currentRecipe) return;
-      const comment = document.getElementById("recipeComment").value.trim();
-      const rating = document.getElementById("recipeRating").value;
+  // ✅ 保存
+  async function saveRecipe() {
+    if (!currentRecipe) return;
+    const comment = document.getElementById("recipeComment").value.trim();
+    const rating = document.getElementById("recipeRating").value;
+    await addDoc(collection(db, "recipes"), { ...currentRecipe, comment, rating });
+    alert("レシピを保存しました！");
+    showSavedRecipes();
+  }
 
-      await addDoc(collection(db, "recipes"), {
-        ...currentRecipe,
-        comment,
-        rating
-      });
+  // ✅ 保存済みレシピ一覧
+  async function showSavedRecipes() {
+    const q = query(collection(db, "recipes"), orderBy("date", "desc"));
+    const snapshot = await getDocs(q);
+    const list = document.getElementById("savedRecipes");
+    list.innerHTML = "";
+    snapshot.forEach(doc => {
+      const r = doc.data();
+      const div = document.createElement("div");
+      div.className = "recipe-card";
+      div.innerHTML = `
+        <h4>${r.name}</h4>
+        <img src="${r.image}">
+        <p><a href="${r.url}" target="_blank">レシピを見る</a></p>
+        <p><b>感想:</b> ${r.comment || "（未記入）"}</p>
+        <p><b>評価:</b> ${"⭐️".repeat(r.rating || 0)}</p>
+      `;
+      list.appendChild(div);
+    });
+  }
 
-      alert("レシピを保存しました！");
-      showSavedRecipes();
-    }
+  // ✅ 起動時処理
+  window.onload = showSavedRecipes;
+  window.getRakutenRecipe = getRakutenRecipe;
+  window.saveRecipe = saveRecipe;
+</script>
 
-    async function showSavedRecipes() {
-      const q = query(collection(db, "recipes"), orderBy("date", "desc"));
-      const snapshot = await getDocs(q);
-      const list = document.getElementById("savedRecipes");
-      list.innerHTML = "";
-
-      snapshot.forEach(doc => {
-        const recipe = doc.data();
-        const div = document.createElement("div");
-        div.className = "recipe-card";
-        div.innerHTML = `
-          <h4>${recipe.name}</h4>
-          <img src="${recipe.image}" alt="${recipe.name}">
-          <p><a href="${recipe.url}" target="_blank">レシピを開く</a></p>
-          <p><b>感想:</b> ${recipe.comment || "（未記入）"}</p>
-          <p><b>評価:</b> ${"⭐️".repeat(recipe.rating || 0)}</p>
-        `;
-        list.appendChild(div);
-      });
-    }
-
-    window.onload = showSavedRecipes;
-    window.getRakutenRecipe = getRakutenRecipe;
-    window.saveRecipe = saveRecipe;
-  </script>
 </head>
 
 <body>
