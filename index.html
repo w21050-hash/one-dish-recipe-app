@@ -2,77 +2,61 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>一品提案型レシピ記録アプリ（楽天版）</title>
+  <title>一品提案型レシピ記録アプリ（楽天レシピ対応）</title>
 
   <style>
     body {
-      font-family: "Segoe UI", sans-serif;
+      font-family: 'Segoe UI', sans-serif;
       background: #fafafa;
       margin: 0;
-      padding: 15px;
-    }
-
-    h1 {
-      text-align: center;
-      font-size: 22px;
-      margin-bottom: 20px;
-    }
-
-    .section {
-      background: #fff;
-      padding: 15px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-
-    input, textarea, select {
-      width: 100%;
       padding: 10px;
-      margin-top: 8px;
-      border-radius: 6px;
+      color: #333;
+    }
+    h1 { text-align: center; margin-bottom: 10px; }
+    h2 { border-left: 6px solid #4CAF50; padding-left: 8px; margin-top: 20px; }
+
+    input, select, textarea {
+      width: 100%;
+      padding: 8px;
+      margin: 6px 0;
       border: 1px solid #ccc;
+      border-radius: 6px;
       font-size: 16px;
       box-sizing: border-box;
     }
 
     button {
-      width: 100%;
-      background: #4CAF50;
-      color: #fff;
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px;
       border: none;
-      padding: 12px;
       border-radius: 8px;
-      cursor: pointer;
-      margin-top: 15px;
       font-size: 16px;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 10px;
     }
-
-    button:hover {
-      background: #45a049;
-    }
+    button:hover { background-color: #43a047; }
 
     .recipe-card {
-      background: #fff;
+      background: white;
       border-radius: 10px;
-      padding: 15px;
-      margin-top: 15px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      padding: 15px;
+      margin-top: 10px;
     }
-
     .recipe-card img {
       width: 100%;
       border-radius: 8px;
+      margin-top: 10px;
     }
   </style>
 
   <script type="module">
-    /* =============================
-       Firebase 設定
-    ============================= */
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-app.js";
     import { getFirestore, collection, addDoc, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/10.12.3/firebase-firestore.js";
 
+    // ===== Firebase 設定 =====
     const firebaseConfig = {
       apiKey: "AIzaSyDNrRl_pHrI3qNs0CysOb4UcRmfcFVPiCE",
       authDomain: "one-dish-recipe-app.firebaseapp.com",
@@ -81,92 +65,79 @@
       messagingSenderId: "685959274245",
       appId: "1:685959274245:web:6c7194f9993c67aa9c216c"
     };
-
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
-    /* =============================
-       楽天 API 設定
-    ============================= */
+    // ===== 楽天API設定 =====
     const APP_ID = "1009563489332319367";
 
-    /* =============================
-       食材 → 大カテゴリ辞書（安定版）
-    ============================= */
-    const ingredientCategoryMap = {
-      "鶏肉": "11",
-      "豚肉": "11",
-      "牛肉": "11",
+    // ===== 食材 → カテゴリID マッピング =====
+    const categoryMap = {
+      // 肉
+      "鶏肉": 31, "とりにく": 31,
+      "豚肉": 31, "ぶたにく": 31,
+      "牛肉": 31, "ぎゅうにく": 31,
 
-      "鮭": "13",
-      "さば": "13",
-      "サバ": "13",
-      "魚": "13",
+      // 魚
+      "鮭": 21, "さけ": 21, "サケ": 21,
+      "さば": 21, "鯖": 21,
 
-      "じゃがいも": "12",
-      "玉ねぎ": "12",
-      "にんじん": "12",
-      "キャベツ": "12",
-      "レタス": "12",
-      "ブロッコリー": "12",
-      "なす": "12",
-      "ほうれん草": "12",
-      "トマト": "12",
+      // 野菜
+      "じゃがいも": 10, "玉ねぎ": 10, "たまねぎ": 10,
+      "にんじん": 10, "キャベツ": 10, "レタス": 10,
+      "ブロッコリー": 10, "なす": 10,
+      "ほうれん草": 10, "トマト": 10,
 
-      "卵": "14",
+      // 卵
+      "卵": 41, "たまご": 41,
 
-      "豆腐": "17",
+      // 豆腐
+      "豆腐": 42, "とうふ": 42,
 
-      "きのこ": "12",
-      "しめじ": "12",
-      "えのき": "12",
-      "しいたけ": "12",
+      // きのこ
+      "きのこ": 12,
 
-      "米": "15",
-      "ご飯": "15",
-      "パン": "15",
+      // パスタ
+      "パスタ": 22,
 
-      "パスタ": "16",
-      "スパゲッティ": "16",
-      "麺": "16"
+      // 米・パン
+      "米": 14, "ご飯": 14,
+      "パン": 24
     };
-
-    function detectCategory(ingredient) {
-      return ingredientCategoryMap[ingredient] || "10"; // fallback: 人気メニュー
-    }
 
     let currentRecipe = null;
 
-    /* =============================
-       楽天レシピ：大カテゴリ→ランキング取得
-    ============================= */
-    async function getRakutenRecipe() {
-      const ingredient = document.getElementById("ingredientInput").value.trim();
+    // ===== 楽天APIからレシピ取得 =====
+    async function getRakutenRecipe(ingredient) {
+
       const resultDiv = document.getElementById("recipeResult");
 
-      if (!ingredient) {
-        resultDiv.innerHTML = "食材を入力してください。";
+      // ① 食材 → カテゴリID
+      const categoryId = categoryMap[ingredient];
+
+      if (!categoryId) {
+        resultDiv.innerHTML = "この食材はまだ対応していません。別の言い方で入力してみてください。";
         return;
       }
 
-      resultDiv.innerHTML = "レシピ検索中...";
-
-      const categoryId = detectCategory(ingredient);
+      resultDiv.innerHTML = "レシピを検索中...";
 
       try {
-        const url =
-          `https://app.rakuten.co.jp/services/api/Recipe/CategoryRanking/20170426?applicationId=${APP_ID}&categoryId=${categoryId}`;
+        // ② ランキング取得
+        const rankRes = await fetch(
+          `https://app.rakuten.co.jp/services/api/Recipe/CategoryRanking/20170426?applicationId=${APP_ID}&categoryId=${categoryId}`
+        );
+        const rankData = await rankRes.json();
 
-        const res = await fetch(url);
-        const data = await res.json();
-
-        if (!data.result || data.result.length === 0) {
-          resultDiv.innerHTML = "該当カテゴリにレシピがありません。";
+        if (!rankData.result || rankData.result.length === 0) {
+          resultDiv.innerHTML = "レシピが見つかりませんでした。";
           return;
         }
 
-        const recipe = data.result[Math.floor(Math.random() * data.result.length)];
+        // ③ ランダムに1件選ぶ
+        const recipe = rankData.result[Math.floor(Math.random() * rankData.result.length)];
 
+        // Firestore保存用データ
         currentRecipe = {
           ingredient,
           name: recipe.recipeTitle,
@@ -175,15 +146,15 @@
           date: new Date().toISOString()
         };
 
+        // ④ 表示
         resultDiv.innerHTML = `
           <div class="recipe-card">
             <h3>${recipe.recipeTitle}</h3>
             <img src="${recipe.foodImageUrl}">
             <p><a href="${recipe.recipeUrl}" target="_blank">レシピを開く</a></p>
 
-            <h4>感想を記録</h4>
-            <textarea id="recipeComment" placeholder="感想を入力"></textarea>
-
+            <h4>感想を記録する</h4>
+            <textarea id="recipeComment" placeholder="作ってみた感想"></textarea>
             <label>評価：
               <select id="recipeRating">
                 <option value="5">⭐️⭐️⭐️⭐️⭐️</option>
@@ -194,18 +165,20 @@
               </select>
             </label>
 
-            <button onclick="saveRecipe()">感想つきで保存</button>
+            <button onclick="saveRecipe()">感想つきで記録</button>
+            <button onclick="getRakutenRecipe('${ingredient}')">別のレシピを提案</button>
           </div>
         `;
-      } catch (err) {
-        resultDiv.innerHTML = "エラー：" + err;
+
+      } catch (error) {
+        resultDiv.innerHTML = "エラー: " + error;
       }
     }
 
-    /* =============================
-       Firestore 保存
-    ============================= */
+    // ===== Firestore保存 =====
     async function saveRecipe() {
+      if (!currentRecipe) return;
+
       const comment = document.getElementById("recipeComment").value.trim();
       const rating = document.getElementById("recipeRating").value;
 
@@ -219,58 +192,50 @@
       showSavedRecipes();
     }
 
-    /* =============================
-       保存一覧表示
-    ============================= */
+    // ===== 保存済みレシピ表示 =====
     async function showSavedRecipes() {
-      const q = query(collection(db, "recipes"), orderBy("date", "desc"));
-      const snapshot = await getDocs(q);
+      const qData = query(collection(db, "recipes"), orderBy("date", "desc"));
+      const snapshot = await getDocs(qData);
 
       const list = document.getElementById("savedRecipes");
       list.innerHTML = "";
 
       snapshot.forEach(doc => {
-        const r = doc.data();
+        const recipe = doc.data();
         const div = document.createElement("div");
         div.className = "recipe-card";
 
         div.innerHTML = `
-          <h4>${r.name}</h4>
-          <img src="${r.image}">
-          <p><a href="${r.url}" target="_blank">レシピを見る</a></p>
-          <p><b>感想:</b> ${r.comment || "（未記入）"}</p>
-          <p><b>評価:</b> ${"⭐️".repeat(r.rating)}</p>
+          <h4>${recipe.name}</h4>
+          <img src="${recipe.image}">
+          <p><a href="${recipe.url}" target="_blank">レシピを開く</a></p>
+          <p><b>感想:</b> ${recipe.comment || "（未記入）"}</p>
+          <p><b>評価:</b> ${"⭐️".repeat(recipe.rating || 0)}</p>
         `;
 
         list.appendChild(div);
       });
     }
 
+    window.onload = showSavedRecipes;
     window.getRakutenRecipe = getRakutenRecipe;
     window.saveRecipe = saveRecipe;
-    window.onload = showSavedRecipes;
   </script>
 </head>
 
 <body>
-
   <h1>一品提案型レシピ記録アプリ 🍳</h1>
 
-  <div class="section">
-    <h2>食材を入力</h2>
-    <input id="ingredientInput" placeholder="例：鶏肉、じゃがいも、卵など">
-    <button onclick="getRakutenRecipe()">レシピを提案</button>
-  </div>
+  <h2>食材を入力</h2>
+  <input type="text" id="ingredientInput" placeholder="例：じゃがいも、鶏肉、卵など">
+  <button onclick="getRakutenRecipe(document.getElementById('ingredientInput').value.trim())">
+    レシピを提案
+  </button>
 
-  <div class="section">
-    <h2>レシピ提案</h2>
-    <div id="recipeResult"></div>
-  </div>
+  <h2>レシピ提案</h2>
+  <div id="recipeResult"></div>
 
-  <div class="section">
-    <h2>料理ストーリーブック</h2>
-    <div id="savedRecipes"></div>
-  </div>
-
+  <h2>料理ストーリーブック</h2>
+  <div id="savedRecipes"></div>
 </body>
 </html>
